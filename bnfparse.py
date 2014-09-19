@@ -90,10 +90,10 @@ class BNFParser(object):
                 elif token == '|': # Disjunction
                     temp = Tree({'one-of' : 'one-of'})
                     temp.parent = current
-                    temp.children = current.children
-                    current.children = [temp]
-                    for child in temp.children:
-                        child.parent = temp
+                    child = current.children.pop()
+                    current.children.append(temp)
+                    child.parent = temp
+                    temp.children.append(child)
                     current = temp
                 elif token == ' ': # Disjunction
                     temp = Tree({'all-of' : 'all-of'})
@@ -161,7 +161,7 @@ def split_on(delimiter, s):
        
 if __name__ == "__main__":
 
-    with open('../grammars/grammar.wbnf', 'r') as fo:
+    with open('../grammars/baseline.wbnf', 'r') as fo:
         text = fo.read()
 
     grammar = BNFParser(text)
