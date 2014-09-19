@@ -27,30 +27,33 @@ class BNFParser(object):
         )
         self.parse()
     
-    def __str__(self):
-        return ' '.join(map(string.strip, self.generate(self.rules['<START>'])))
+    #===========================================================================
+    # def __str__(self):
+    #     return ' '.join(map(string.strip, self.generate(self.rules['<START>'])))
+    #===========================================================================
     
     def generate(self, tree, output=[]):
         """Traverse the tree to generate a sentence licensed by the FSG."""
-        if tree.attrib.has_key('rule'):
-            for child in self.rules[tree.attrib['rule']].children:
-                self.generate(child, output)
-        elif tree.attrib.has_key('token'):    # Terminal
-            output.append(tree.attrib['token'])
+        if tree.attrib.has_key('all-of'): # Conjunction
             for child in tree.children:
                 self.generate(child, output)
-        elif tree.attrib.has_key('all-of'): # Conjunction
-            for child in tree.children:
-                self.generate(child, output)
-        elif tree.attrib.has_key('one-of'): # Disjunction
+        if tree.attrib.has_key('one-of'): # Disjunction
             chosen = random.choice(tree.children)
             self.generate(chosen, output)
-        elif tree.attrib.has_key('repeat'):   # Repetition
+        if tree.attrib.has_key('repeat'):   # Repetition
             n = random.choice(tree.attrib['repeat'])
             for i in range(n):
                 for child in tree.children:
                     self.generate(child, output)
+        if tree.attrib.has_key('token'):    # Terminal
+            output.append(tree.attrib['token'])
+            for child in tree.children:
+                self.generate(child, output)
+        if tree.attrib.has_key('rule'):
+            for child in self.rules[tree.attrib['rule']].children:
+                self.generate(child, output)
         return output
+
     
     def parse(self, repmax=3):
         """Convert bnf to an n-ary tree via a recursive-descent parse."""
@@ -82,6 +85,12 @@ class BNFParser(object):
                     temp.children = current.children
                     current.children = [temp]
                     current = temp
+                elif token == ' ': # Disjunction
+                    temp = Tree({'all-of' : []})
+                    temp.parent = current
+                    temp.children = current.children
+                    current.children = [temp]
+                    current = temp
                 elif token == '*': # Repeat zero or more times
                     temp = Tree({'repeat': range(0, repmax+1)})
                     temp.children = [current.children.pop()]
@@ -93,7 +102,7 @@ class BNFParser(object):
                     current.children.append(temp)
                     temp.parent = current
                 elif re.match(r'<.+>', token):
-                    print token
+                    #print token
                     current.children.append(Tree({'rule' : token}))
                 else:
                     current.children.append(Tree({'token' : token}))
@@ -118,13 +127,13 @@ def tokenize(rule):
     for character in rule:
         if character in operators:
             if token:
-                token_list.append(token)
+                token_list.extend(split_on(' ', token))
             token_list.append(character)
             token = ''
         else:
             token = token + character
     if token:
-        token_list.append(token)
+        token_list.extend(split_on(' ', token))
     return token_list
 
 def parse(rule, repmax=3):
@@ -176,7 +185,25 @@ def split_on(delimiter, s):
     """Split a string s based on a delimiter string."""
     from string import strip
     return map(strip, filter(None, s.split(delimiter)))
-            
+       
+       
+if __name__ == "__main__":
+    with open('../grammars/baseline.wbnf', 'r') as fo:
+        text = fo.read()
+        text = re.sub('//.+', '', text) # strip comments        
+        text = re.sub('\n', ' ', text) # normalize whitespace
+        text = re.sub('\s+', ' ', text) # normalize whitespace
+        text = re.sub(r'\s+([\|\)\(\[\]\+\*]+)\s+', r'\1', text) # normalize whitespace
+
+    grammar = BNFParser(text)
+    print grammar.generate(grammar.rules['<START>'])
+    
+    #===========================================================================
+    # for g in grammar.rules:
+    #     print g
+    #===========================================================================
+    
+    
 #if __name__ == "__main__":
 #    from sys import argv
 #    from os import path
