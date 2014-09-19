@@ -27,10 +27,8 @@ class BNFParser(object):
         )
         self.parse()
     
-    #===========================================================================
-    # def __str__(self):
-    #     return ' '.join(map(string.strip, self.generate(self.rules['<START>'])))
-    #===========================================================================
+    def __str__(self):
+        return ' '.join(map(string.strip, self.generate(self.rules['<START>'], [])))
     
     def generate(self, tree, output=[]):
         """Traverse the tree to generate a sentence licensed by the FSG."""
@@ -53,7 +51,6 @@ class BNFParser(object):
             for child in self.rules[tree.attrib['rule']].children:
                 self.generate(child, output)
         return output
-
     
     def parse(self, repmax=3):
         """Convert bnf to an n-ary tree via a recursive-descent parse."""
@@ -193,16 +190,12 @@ if __name__ == "__main__":
         text = re.sub('//.+', '', text) # strip comments        
         text = re.sub('\n', ' ', text) # normalize whitespace
         text = re.sub('\s+', ' ', text) # normalize whitespace
-        text = re.sub(r'\s+([\|\)\(\[\]\+\*]+)\s+', r'\1', text) # normalize whitespace
+        text = re.sub(r'\s*([\|\)\(\[\]\+\*]+)\s*', r'\1', text) # normalize whitespace
 
     grammar = BNFParser(text)
-    print grammar.generate(grammar.rules['<START>'])
-    
-    #===========================================================================
-    # for g in grammar.rules:
-    #     print g
-    #===========================================================================
-    
+    for i in range(100):
+        print grammar
+  
     
 #if __name__ == "__main__":
 #    from sys import argv
