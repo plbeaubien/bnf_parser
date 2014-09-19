@@ -26,7 +26,11 @@ class BNFParser(object):
         self.rules = dict(
             [split_on('=', rule) for rule in split_on(';', self.string)]
         )
+        for x in self.rules.keys()[:1]:
+            print tokenize(self.rules[x])
         self.parse()
+        for x in self.rules.keys()[:1]:
+            print self.rules[x]
     
     def __str__(self):
         return ' '.join(map(string.strip, self.generate(self.rules['<START>'], [])))
@@ -59,6 +63,8 @@ class BNFParser(object):
         text = re.sub('\n', ' ', text) # normalize whitespace
         text = re.sub('\s+', ' ', text) # normalize whitespace
         text = re.sub(r'\s*([\|\)\(\[\]\+\*]+)\s*', r'\1', text) # normalize whitespace
+        text = re.sub(r'\[', r'[(', text) # normalize whitespace
+        text = re.sub(r'\]', r')]', text) # normalize whitespace
         self.string = text
     
     def parse(self, repmax=3):
@@ -72,7 +78,7 @@ class BNFParser(object):
             # Iterate over all tokens in the right-hand side
             for token in tokenize(rhs):
                 if token =='(':   # We need to go deeper
-                    temp = Tree({'all-of' : []})
+                    temp = Tree({'all-of' : 'all-of'})
                     current.children.append(temp)
                     stack.push(current)
                     current = temp
@@ -86,17 +92,19 @@ class BNFParser(object):
                 elif token ==']': # Kick back up a level
                     current = stack.pop()
                 elif token == '|': # Disjunction
-                    temp = Tree({'one-of' : []})
+                    temp = Tree({'one-of' : 'one-of'})
+                    child = current.children.pop()
+                    current.children.append(temp)
                     temp.parent = current
-                    temp.children = current.children
-                    current.children = [temp]
+                    temp.children.append(child)
                     current = temp
                 elif token == ' ': # Disjunction
-                    temp = Tree({'all-of' : []})
+                    temp = Tree({'all-of' : 'all-of'})
+                    child = current.children.pop()
+                    current.children.append(temp)
                     temp.parent = current
-                    temp.children = current.children
-                    current.children = [temp]
-                    current = temp
+                    temp.children.append(child)
+                    current = temp                    
                 elif token == '*': # Repeat zero or more times
                     temp = Tree({'repeat': range(0, repmax+1)})
                     temp.children = [current.children.pop()]
@@ -108,7 +116,6 @@ class BNFParser(object):
                     current.children.append(temp)
                     temp.parent = current
                 elif re.match(r'<.+>', token):
-                    #print token
                     current.children.append(Tree({'rule' : token}))
                 else:
                     current.children.append(Tree({'token' : token}))
@@ -124,22 +131,27 @@ class Tree(object):
         self.parent = None
         self.children = []
 
-
+    def __str__(self):
+        if self.children == []:
+            return str([y for y in self.attrib.iteritems()][0][1])
+        else:
+            return '\n'.join([str(child) for child in self.children])
+                    
 def tokenize(rule):
     """Tokenizes raw Backus-Naur Form (BNF) content."""
-    operators = '()[]|+*'
+    operators = '()[]|+* '
     token_list = []
     token = ''
     for character in rule:
         if character in operators:
             if token:
-                token_list.extend(split_on(' ', token))
+                token_list.append(token)
             token_list.append(character)
             token = ''
         else:
             token = token + character
     if token:
-        token_list.extend(split_on(' ', token))
+        token_list.append(token)
     return token_list
 
 
@@ -151,13 +163,12 @@ def split_on(delimiter, s):
        
 if __name__ == "__main__":
 
-    with open('../grammars/baseline.wbnf', 'r') as fo:
+    with open('../grammars/grammar.wbnf', 'r') as fo:
         text = fo.read()
 
     grammar = BNFParser(text)
-    for i in range(100):
+    for i in range(2):
         print grammar
-  
     
 #if __name__ == "__main__":
 #    from sys import argv
