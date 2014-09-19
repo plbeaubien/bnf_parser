@@ -21,6 +21,7 @@ class BNFParser(object):
     def __init__(self, string, repmax=3):
         super(BNFParser, self).__init__()
         self.string = string
+        self.normalize()
         self.repmax = repmax
         self.rules = dict(
             [split_on('=', rule) for rule in split_on(';', self.string)]
@@ -51,6 +52,14 @@ class BNFParser(object):
             for child in self.rules[tree.attrib['rule']].children:
                 self.generate(child, output)
         return output
+
+    def normalize(self):
+        text = self.string
+        text = re.sub('//.+', '', text) # strip comments        
+        text = re.sub('\n', ' ', text) # normalize whitespace
+        text = re.sub('\s+', ' ', text) # normalize whitespace
+        text = re.sub(r'\s*([\|\)\(\[\]\+\*]+)\s*', r'\1', text) # normalize whitespace
+        self.string = text
     
     def parse(self, repmax=3):
         """Convert bnf to an n-ary tree via a recursive-descent parse."""
@@ -133,50 +142,6 @@ def tokenize(rule):
         token_list.extend(split_on(' ', token))
     return token_list
 
-def parse(rule, repmax=3):
-    """Convert a bnf rule to a tree by means of a recursive-descent parse."""
-    # Split into left-hand and right-hand sides
-    lhs, rhs = split_on('=', rule)
-    # Instantiate a stack to keep track of each nested level
-    stack = Stack()
-    # Instantiate a tree to store the rule expansion
-    root = Tree({'token':lhs})
-    current = root
-    # Iterate over all tokens in the right-hand side
-    for token in tokenize(rhs):
-        if token =='(':   # We need to go deeper
-            temp = Tree({'<all-of>':[]})
-            current.children.append(temp)
-            stack.push(current)
-            current = temp
-        elif token ==')': # Kick back up a level
-            current = stack.pop()
-        elif token =='[': # Repeat once or not at all
-            temp = Tree({'repeat': [0, 1]})
-            current.children.append(temp)
-            stack.push(current)
-            current = temp
-        elif token ==']': # Kick back up a level
-            current = stack.pop()
-        elif token == '|': # Disjunction
-            temp = Tree({'<one-of>':[]})
-            temp.parent = current
-            temp.children = current.children
-            current.children = [temp]
-            current = temp
-        elif token == '*': # Repeat zero or more times
-            temp = Tree({'repeat': range(0, repmax+1)})
-            temp.children = [current.children.pop()]
-            current.children.append(temp)
-            temp.parent = current            
-        elif token == '+': # Repeat one or more times
-            temp = Tree({'repeat': range(1, repmax+1)})
-            temp.children = [current.children.pop()]
-            current.children.append(temp)
-            temp.parent = current
-        else:
-            current.children.append(Tree({'token':token}))
-    return root
 
 def split_on(delimiter, s):
     """Split a string s based on a delimiter string."""
@@ -185,12 +150,9 @@ def split_on(delimiter, s):
        
        
 if __name__ == "__main__":
+
     with open('../grammars/baseline.wbnf', 'r') as fo:
         text = fo.read()
-        text = re.sub('//.+', '', text) # strip comments        
-        text = re.sub('\n', ' ', text) # normalize whitespace
-        text = re.sub('\s+', ' ', text) # normalize whitespace
-        text = re.sub(r'\s*([\|\)\(\[\]\+\*]+)\s*', r'\1', text) # normalize whitespace
 
     grammar = BNFParser(text)
     for i in range(100):
