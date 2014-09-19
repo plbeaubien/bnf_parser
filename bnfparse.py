@@ -26,11 +26,7 @@ class BNFParser(object):
         self.rules = dict(
             [split_on('=', rule) for rule in split_on(';', self.string)]
         )
-        for x in self.rules.keys()[:1]:
-            print tokenize(self.rules[x])
         self.parse()
-        for x in self.rules.keys()[:1]:
-            print self.rules[x]
     
     def __str__(self):
         return ' '.join(map(string.strip, self.generate(self.rules['<START>'], [])))
@@ -93,18 +89,20 @@ class BNFParser(object):
                     current = stack.pop()
                 elif token == '|': # Disjunction
                     temp = Tree({'one-of' : 'one-of'})
-                    child = current.children.pop()
-                    current.children.append(temp)
                     temp.parent = current
-                    temp.children.append(child)
+                    temp.children = current.children
+                    current.children = [temp]
+                    for child in temp.children:
+                        child.parent = temp
                     current = temp
                 elif token == ' ': # Disjunction
                     temp = Tree({'all-of' : 'all-of'})
+                    temp.parent = current
                     child = current.children.pop()
                     current.children.append(temp)
-                    temp.parent = current
+                    child.parent = temp
                     temp.children.append(child)
-                    current = temp                    
+                    current = temp
                 elif token == '*': # Repeat zero or more times
                     temp = Tree({'repeat': range(0, repmax+1)})
                     temp.children = [current.children.pop()]
@@ -135,7 +133,7 @@ class Tree(object):
         if self.children == []:
             return str([y for y in self.attrib.iteritems()][0][1])
         else:
-            return '\n'.join([str(child) for child in self.children])
+            return '\n'.join([str([y for y in self.attrib.iteritems()][0][1])]+[str(child) for child in self.children])
                     
 def tokenize(rule):
     """Tokenizes raw Backus-Naur Form (BNF) content."""
@@ -167,7 +165,7 @@ if __name__ == "__main__":
         text = fo.read()
 
     grammar = BNFParser(text)
-    for i in range(2):
+    for i in range(5):
         print grammar
     
 #if __name__ == "__main__":
