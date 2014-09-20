@@ -4,16 +4,16 @@ __emails__  = ['', 'zyocum@brandeis.edu']
 import re, random, string
 
 class Stack(list):
-    """docstring for Stack"""
+    """A simple stack using an underlying list."""
     def __init__(self):
         super(Stack, self).__init__()
     
     def push(self, item):
-        """docstring for push"""
+        """Push an item onto the stack."""
         self.append(item)
     
     def is_empty(self):
-        """docstring for push"""
+        """Returns True if the stack is empty and False otherwise."""
         return not self
 
 class BNFParser(object):
@@ -67,17 +67,17 @@ class BNFParser(object):
     def generate(self, tree):
         """Traverse the tree to generate a sentence licensed by the FSG."""
         output = []
-        if tree.attrib.has_key('terminal'):   # Terminal
+        if tree.attrib.has_key('terminal'): # Terminal
             output.append(tree.attrib['terminal']) 
-        if tree.attrib.has_key('rule'):    # Rule
+        if tree.attrib.has_key('rule'):     # Rule
             output.extend(self.generate(self.rules[tree.attrib['rule']]))
-        if tree.attrib.has_key('one-of'):  # Disjunction
+        if tree.attrib.has_key('one-of'):   # Disjunction
             child = random.choice(tree.children)
             output.extend(self.generate(child))
-        if tree.attrib.has_key('all-of'):  # Conjunction
+        if tree.attrib.has_key('all-of'):   # Conjunction
             for child in tree.children:
                 output.extend(self.generate(child))
-        if tree.attrib.has_key('repeat'):  # Repetition
+        if tree.attrib.has_key('repeat'):   # Repetition
             n = random.choice(tree.attrib['repeat'])
             for i in range(n):
                 for child in tree.children:
