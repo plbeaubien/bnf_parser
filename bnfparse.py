@@ -18,7 +18,7 @@ class Stack(list):
 
 class BNFParser(object):
     """docstring for BNFParser"""
-    def __init__(self, string, repmax=3):
+    def __init__(self, string, repmax=0):
         super(BNFParser, self).__init__()
         self.string = string
         self.normalize()
@@ -27,6 +27,16 @@ class BNFParser(object):
             [split_on('=', rule) for rule in split_on(';', self.string)]
         )
         self.parse()
+    
+    def normalize(self):
+        text = self.string
+        text = re.sub('//.+', '', text) # strip comments        
+        text = re.sub('\n', ' ', text) # normalize whitespace
+        text = re.sub('\s+', ' ', text) # normalize whitespace
+        text = re.sub(r'\s*([\|\)\(\[\]\+\*]+)\s*', r'\1', text) # normalize whitespace
+        text = re.sub(r'\[', r'[(', text) # normalize whitespace
+        text = re.sub(r'\]', r')]', text) # normalize whitespace
+        self.string = text
     
     def __str__(self):
         return ' '.join(map(string.strip, self.generate(self.rules['<START>'], [])))
@@ -53,22 +63,12 @@ class BNFParser(object):
                 self.generate(child, output)
         return output
 
-    def normalize(self):
-        text = self.string
-        text = re.sub('//.+', '', text) # strip comments        
-        text = re.sub('\n', ' ', text) # normalize whitespace
-        text = re.sub('\s+', ' ', text) # normalize whitespace
-        text = re.sub(r'\s*([\|\)\(\[\]\+\*]+)\s*', r'\1', text) # normalize whitespace
-        text = re.sub(r'\[', r'[(', text) # normalize whitespace
-        text = re.sub(r'\]', r')]', text) # normalize whitespace
-        self.string = text
-    
     def parse(self, repmax=3):
         """Convert bnf to an n-ary tree via a recursive-descent parse."""
         # Instantiate a stack to keep track of each nested level
         stack = Stack()
         for lhs, rhs in self.rules.iteritems():
-            root = Tree({'rule' : lhs})
+            root = Tree({'all-of' : 'all-of'})
             # Instantiate a tree to store the rule expansion
             current = root
             # Iterate over all tokens in the right-hand side
@@ -89,11 +89,18 @@ class BNFParser(object):
                     current = stack.pop()
                 elif token == '|': # Disjunction
                     temp = Tree({'one-of' : 'one-of'})
-                    temp.parent = current
-                    child = current.children.pop()
-                    current.children.append(temp)
-                    child.parent = temp
-                    temp.children.append(child)
+                    temp.parent = current.parent
+                    if current.parent != None:
+                        current.parent.pop()
+                        current.parent.append(temp)
+                    temp.children = [current]
+                    #===========================================================
+                    # temp.parent = current
+                    # child = current.children.pop()
+                    # current.children.append(temp)
+                    # child.parent = temp
+                    # temp.children.append(child)
+                    #===========================================================
                     current = temp
                 elif token == ' ': # Disjunction
                     temp = Tree({'all-of' : 'all-of'})
@@ -161,12 +168,15 @@ def split_on(delimiter, s):
        
 if __name__ == "__main__":
 
-    with open('../grammars/baseline.wbnf', 'r') as fo:
+    with open('../grammars/grammar.wbnf', 'r') as fo:
         text = fo.read()
 
     grammar = BNFParser(text)
-    for i in range(5):
-        print grammar
+    print grammar
+    print grammar
+    print grammar
+    print grammar
+    print grammar
     
 #if __name__ == "__main__":
 #    from sys import argv
