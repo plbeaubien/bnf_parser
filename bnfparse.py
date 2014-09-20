@@ -168,13 +168,14 @@ if __name__ == "__main__":
         if len(argv) in [2, 3]:
             file_path = argv[1]
         if len(argv) in [3]:
-            n = argv[2]
+            n = int(argv[2])
     except IndexError: # < comment this to hardcode values
         file_path = 'my_grammar.wbnf' # < this hardcodes a file path
         n = 10 # < this to hardcodes a number of sentences to generate
     if path.exists(file_path):
         with open(file_path, 'r') as file:
             grammar = BNFParser(file.read())
-        print grammar
+        for i in range(n+1):
+            print grammar
     else:
         print """Usage: Provide a path to a text file containing a Backus-Naur form (BNF) grammar."""
