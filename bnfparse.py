@@ -16,6 +16,36 @@ class Stack(list):
         """Returns True if the stack is empty and False otherwise."""
         return not self
 
+class BNFGrammar(object):
+    """docstring for BNFGrammar"""
+    def __init__(self, rules):
+        super(BNFGrammar, self).__init__()
+        self.rules = rules
+        self.root = self.rules['<START>']
+    
+    def generate(self):
+        return ' '.join(filter(None, self.traverse(self.root)))
+    
+    def traverse(self, tree):
+        """Traverse the tree to generate a sentence licensed by the FSG."""
+        output = []
+        if tree.attrib.has_key('terminal'): # Terminal
+            output.append(tree.attrib['terminal'])
+        if tree.attrib.has_key('rule'):     # Rule
+            output.extend(self.traverse(self.rules[tree.attrib['rule']]))
+        if tree.attrib.has_key('one-of'):   # Disjunction
+            child = random.choice(tree.children)
+            output.extend(self.traverse(child))
+        if tree.attrib.has_key('all-of'):   # Conjunction
+            for child in tree.children:
+                output.extend(self.traverse(child))
+        if tree.attrib.has_key('repeat'):   # Repetition
+            n = random.choice(tree.attrib['repeat'])
+            for i in range(n):
+                for child in tree.children:
+                    output.extend(self.traverse(child))
+        return output
+
 class BNFParser(object):
     """A Backus-Naur form (BNF) recursive descent parser.
     
@@ -63,26 +93,6 @@ class BNFParser(object):
         if token:
             token_list.append(token)
         return token_list
-    
-    def generate(self, tree):
-        """Traverse the tree to generate a sentence licensed by the FSG."""
-        output = []
-        if tree.attrib.has_key('terminal'): # Terminal
-            output.append(tree.attrib['terminal']) 
-        if tree.attrib.has_key('rule'):     # Rule
-            output.extend(self.generate(self.rules[tree.attrib['rule']]))
-        if tree.attrib.has_key('one-of'):   # Disjunction
-            child = random.choice(tree.children)
-            output.extend(self.generate(child))
-        if tree.attrib.has_key('all-of'):   # Conjunction
-            for child in tree.children:
-                output.extend(self.generate(child))
-        if tree.attrib.has_key('repeat'):   # Repetition
-            n = random.choice(tree.attrib['repeat'])
-            for i in range(n):
-                for child in tree.children:
-                    output.extend(self.generate(child))
-        return output
 
     def parse(self):
         """Convert bnf to an n-ary tree via a recursive-descent parse."""
@@ -174,8 +184,9 @@ if __name__ == "__main__":
         n = 10 # < this to hardcodes a number of sentences to generate
     if path.exists(file_path):
         with open(file_path, 'r') as file:
-            grammar = BNFParser(file.read())
-        for i in range(n+1):
-            print grammar
+            parser = BNFParser(file.read())
+        grammar = BNFGrammar(parser.rules)
+        for i in range(1, n+1):
+            print grammar.generate()
     else:
         print """Usage: Provide a path to a text file containing a Backus-Naur form (BNF) grammar."""
