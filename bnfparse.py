@@ -72,7 +72,9 @@ class BNFParser(object):
             ('//.+', ''),                 # remove comments
             ('\n', ' '),                  # transduce newlines to spaces
             ('\s+', ' '),                 # normalize whitespace
-            (r'\s*([\|\+\*]+)\s*', r'\1') # normalize spaces around operators
+            (r'\s*([\|\+\*]+)\s*', r'\1'), # normalize spaces around operators
+            (r'\s*([\)\]])', r'\1'),
+            (r'([\(\[])\s*', r'\1') 
         ]
         for pattern, substitution in sub_patterns:
             string = re.sub(pattern, substitution, string)
