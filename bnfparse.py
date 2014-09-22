@@ -2,6 +2,7 @@ __authors__ = ['Aaron Levine', 'Zachary Yocum']
 __emails__  = ['', 'zyocum@brandeis.edu']
 
 import re, random, string
+import argparse 
 
 class Stack(list):
     """A simple stack using an underlying list."""
@@ -171,22 +172,17 @@ def split_on(delimiter, s):
     return map(strip, filter(None, s.split(delimiter)))
 
 if __name__ == "__main__":
-    from sys import argv
-    from os import path
-    # TODO use argparse to parse commandline arguments
-    try:
-        if len(argv) in [2, 3]:
-            file_path = argv[1]
-        if len(argv) in [3]:
-            n = int(argv[2])
-    except IndexError: # < comment this to hardcode values
-        file_path = 'my_grammar.wbnf' # < this hardcodes a file path
-        n = 10 # < this to hardcodes a number of sentences to generate
-    if path.exists(file_path):
-        with open(file_path, 'r') as file:
-            parser = BNFParser(file.read())
-        grammar = BNFGrammar(parser.rules)
-        for i in range(1, n+1):
-            print grammar.generate()
-    else:
-        print """Usage: Provide a path to a text file containing a Backus-Naur form (BNF) grammar."""
+    
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--path', required=True, help='path to wbnf grammar file')
+    parser.add_argument('--n', default=1, type=int, help='number of sentences to generate')
+    parser.add_argument('--rep-max', default=2, type=int, help='number of sentences to generate')
+
+    args = parser.parse_args()
+
+    with open(args.path, 'r') as fo:        
+        parser = BNFParser(fo.read(), args.rep_max)
+    grammar = BNFGrammar(parser.rules)
+    for i in range(1, args.n+1):
+        print grammar.generate()
