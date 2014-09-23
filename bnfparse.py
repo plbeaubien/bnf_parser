@@ -2,7 +2,6 @@ __authors__ = ['Aaron Levine', 'Zachary Yocum']
 __emails__  = ['', 'zyocum@brandeis.edu']
 
 import re, random, string
-import argparse 
 
 class Stack(list):
     """A simple stack using an underlying list."""
@@ -18,13 +17,14 @@ class Stack(list):
         return not self
 
 class BNFGrammar(object):
-    """docstring for BNFGrammar"""
+    """A Backus-Naur form (BNF) grammar capable of generating sentences."""
     def __init__(self, rules):
         super(BNFGrammar, self).__init__()
         self.rules = rules
         self.root = self.rules['<START>']
     
     def generate(self):
+        """Returns a sentence licensed by the grammar as a string."""
         return ' '.join(filter(None, self.traverse(self.root)))
     
     def traverse(self, tree):
@@ -54,29 +54,31 @@ class BNFParser(object):
     the string to construct a finite-state grammar (FSG) stored in an n-ary 
     tree.  Once the tree is formed, sentences licensed by the grammar can 
     be generated."""
-    def __init__(self, string, max_repeats=3):
+    def __init__(self, text, max_repeats=3):
         super(BNFParser, self).__init__()
-        self.string = self.normalize(string)
+        self.text = self.normalize(text)
         self.max_repeats = max_repeats
         self.rules = dict(
-            [split_on('=', rule) for rule in split_on(';', self.string)]
+            [split_on('=', rule) for rule in split_on(';', self.text)]
         )
         self.parse()
     
     def __str__(self):
         return ' '.join(map(string.strip, self.generate(self.rules['<START>'])))
     
-    def normalize(self, string):
-        """Normalizes the raw BNF in preparation for parsing."""
+    def normalize(self, text):
+        """Normalizes raw BNF in preparation for parsing."""
         sub_patterns = [
-            ('//.+', ''),                 # remove comments
-            ('\n', ' '),                  # transduce newlines to spaces
-            ('\s+', ' '),                 # normalize whitespace
+            (r'//.+', ''),                 # remove comments
+            (r'\n', ' '),                  # transduce newlines to spaces
+            (r'\s+', ' '),                 # normalize whitespace
+            (r'\s([\)\]])', r'\1'),        # normalize whitespace before ) and ]
+            (r'([\(\[])\s', r'\1'),        # normalize whitespace after ( and [
             (r'\s*([\|\+\*]+)\s*', r'\1') # normalize spaces around operators
         ]
         for pattern, substitution in sub_patterns:
-            string = re.sub(pattern, substitution, string)
-        return string
+            text = re.sub(pattern, substitution, text)
+        return text
     
     def tokenize(self, rule):
         """Tokenizes raw Backus-Naur Form (BNF) content."""
@@ -105,7 +107,7 @@ class BNFParser(object):
             stack.push(root)
             current = root
             # Iterate over all tokens in the right-hand side
-            for token in self.tokenize(rhs):
+            for token in self.tokenize('(' + rhs + ')'):
                 if token =='(':                # We need to go deeper
                     temp = Tree({'all-of' : None})
                     current.children.append(temp)
@@ -166,22 +168,20 @@ def pprint(tree, i=0):
     for child in tree.children:
         pprint(child, i+1)
 
-def split_on(delimiter, s):
-    """Split a string s based on a delimiter string."""
+def split_on(delimiter, text):
+    """Split text based on a delimiter."""
     from string import strip
-    return map(strip, filter(None, s.split(delimiter)))
+    return map(strip, filter(None, text.split(delimiter)))
 
 if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--path', required=True, help='path to wbnf grammar file')
+    from argparse import *
+    parser = ArgumentParser()
+    parser.add_argument('--path', required=True, help='path to bnf grammar file')
     parser.add_argument('--n', default=1, type=int, help='number of sentences to generate')
-    parser.add_argument('--rep-max', default=2, type=int, help='number of sentences to generate')
-
+    parser.add_argument('--rep-max', default=2, type=int, help="maximum number of '*' and '+' expansions")
     args = parser.parse_args()
 
-    with open(args.path, 'r') as fo:        
+    with open(args.path, 'r') as fo:
         parser = BNFParser(fo.read(), args.rep_max)
     grammar = BNFGrammar(parser.rules)
     for i in range(1, args.n+1):
