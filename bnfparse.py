@@ -28,7 +28,7 @@ class BNFGrammar(object):
         return ' '.join(filter(None, self.traverse(self.root)))
     
     def traverse(self, tree):
-        """Traverse the tree to generate a sentence licensed by the FSG."""
+        """Traverse the tree to generate a sentence licensed by the grammar."""
         output = []
         if tree.attrib.has_key('terminal'): # Terminal
             output.append(tree.attrib['terminal'])
@@ -52,8 +52,7 @@ class BNFParser(object):
     
     Given a string containing a BNF grammar, a BNFParser instance parses
     the string to construct a finite-state grammar (FSG) stored in an n-ary 
-    tree.  Once the tree is formed, sentences licensed by the grammar can 
-    be generated."""
+    tree."""
     def __init__(self, text, max_repeats=3):
         super(BNFParser, self).__init__()
         self.text = self.normalize(text)
@@ -81,7 +80,7 @@ class BNFParser(object):
         return text
     
     def tokenize(self, rule):
-        """Tokenizes raw Backus-Naur Form (BNF) content."""
+        """Tokenizes normalized Backus-Naur Form (BNF) content."""
         operators = '()[]|+* '
         token_list = []
         token = ''
@@ -102,8 +101,8 @@ class BNFParser(object):
         # Instantiate a stack to keep track of each nested level
         stack = Stack()
         for lhs, rhs in self.rules.iteritems():
-            root = Tree({'all-of' : None})
             # Instantiate a tree to store the rule expansion
+            root = Tree({'all-of' : None})
             stack.push(root)
             current = root
             # Iterate over all tokens in the right-hand side
