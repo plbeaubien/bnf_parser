@@ -77,7 +77,7 @@ class BNFParser(object):
             else:
                 token += character
         if token:
-            token_list.append('(' + token + ')')
+            token_list.append(token)
         return token_list
 
     def parse(self):
