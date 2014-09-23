@@ -48,10 +48,6 @@ class BNFParser(object):
         )
         self.parse()
     
-    def __str__(self):
-        from string import strip
-        return ' '.join(map(strip, self.generate(self.rules['<START>'])))
-    
     def normalize(self, text):
         """Normalizes raw BNF in preparation for parsing."""
         from re import sub
@@ -186,7 +182,7 @@ def pprint(tree, i=0):
 def split_on(delimiter, text):
     """Split text based on a delimiter."""
     from string import strip
-    return map(strip, filter(None, text.split(delimiter)))
+    return filter(None, map(strip, text.split(delimiter)))
 
 if __name__ == "__main__":
     from argparse import *
