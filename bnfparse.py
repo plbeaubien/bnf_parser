@@ -3,19 +3,6 @@ __emails__  = ['', 'zyocum@brandeis.edu']
 
 import re, random, string
 
-class Stack(list):
-    """A simple stack using an underlying list."""
-    def __init__(self):
-        super(Stack, self).__init__()
-    
-    def push(self, item):
-        """Push an item onto the stack."""
-        self.append(item)
-    
-    def is_empty(self):
-        """Returns True if the stack is empty and False otherwise."""
-        return not self
-
 class BNFGrammar(object):
     """A Backus-Naur form (BNF) grammar capable of generating sentences."""
     def __init__(self, rules):
@@ -152,6 +139,19 @@ class BNFParser(object):
                     current.children.append(Tree({'terminal' : token}))
             self.rules[lhs] = root
         return root
+
+class Stack(list):
+    """A simple stack using an underlying list."""
+    def __init__(self):
+        super(Stack, self).__init__()
+    
+    def push(self, item):
+        """Push an item onto the stack."""
+        self.append(item)
+    
+    def is_empty(self):
+        """Returns True if the stack is empty and False otherwise."""
+        return not self
 
 class Tree(object):
     """An n-ary tree capable of storing a finite-state grammar (FSG)."""
