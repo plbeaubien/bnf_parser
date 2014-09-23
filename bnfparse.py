@@ -1,8 +1,6 @@
 __authors__ = ['Aaron Levine', 'Zachary Yocum']
 __emails__  = ['', 'zyocum@brandeis.edu']
 
-import re, random, string
-
 class BNFGrammar(object):
     """A Backus-Naur form (BNF) grammar capable of generating sentences."""
     def __init__(self, rules):
@@ -16,6 +14,7 @@ class BNFGrammar(object):
     
     def traverse(self, tree):
         """Traverse the tree to generate a sentence licensed by the grammar."""
+        import random
         output = []
         if tree.attrib.has_key('terminal'): # Terminal
             output.append(tree.attrib['terminal'])
@@ -50,10 +49,12 @@ class BNFParser(object):
         self.parse()
     
     def __str__(self):
-        return ' '.join(map(string.strip, self.generate(self.rules['<START>'])))
+        from string import strip
+        return ' '.join(map(strip, self.generate(self.rules['<START>'])))
     
     def normalize(self, text):
         """Normalizes raw BNF in preparation for parsing."""
+        from re import sub
         sub_patterns = [
             (r'//.+', ''),                 # remove comments
             (r'\n', ' '),                  # transduce newlines to spaces
@@ -63,7 +64,7 @@ class BNFParser(object):
             (r'\s*([\|\+\*]+)\s*', r'\1') # normalize spaces around operators
         ]
         for pattern, substitution in sub_patterns:
-            text = re.sub(pattern, substitution, text)
+            text = sub(pattern, substitution, text)
         return text
     
     def tokenize(self, rule):
@@ -85,6 +86,7 @@ class BNFParser(object):
 
     def parse(self):
         """Convert bnf to an n-ary tree via a recursive-descent parse."""
+        from re import match
         # Instantiate a stack to keep track of each nested level
         stack = Stack()
         for lhs, rhs in self.rules.iteritems():
@@ -133,7 +135,7 @@ class BNFParser(object):
                     temp.children = [current.children.pop()]
                     current.children.append(temp)
                     temp.parent = current
-                elif re.match(r'<.+>', token): # Rule expansion
+                elif match(r'<.+>', token): # Rule expansion
                     current.children.append(Tree({'rule' : token}))
                 else:                          # Terminal
                     current.children.append(Tree({'terminal' : token}))
