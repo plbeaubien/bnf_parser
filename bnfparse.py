@@ -81,7 +81,7 @@ class BNFParser(object):
             else:
                 token += character
         if token:
-            token_list.append(token)
+            token_list.append('(' + token + ')')
         return token_list
 
     def parse(self):
@@ -126,15 +126,29 @@ class BNFParser(object):
                     temp.children.append(child)
                     current = temp
                 elif token == '*':             # Repeat zero or more times
+                    child = current.children[-1]
                     temp = Tree({'repeat': range(0, self.max_repeats+1)})
-                    temp.children = [current.children.pop()]
-                    current.children.append(temp)
-                    temp.parent = current            
+                    if child.children:
+                        temp.children = [child.children.pop()]
+                        child.children.append(temp)
+                        temp.parent = child
+                    else:
+                        temp.children = [child]
+                        temp.parent = current
+                        current.children.pop()
+                        current.children.append(temp)
                 elif token == '+':             # Repeat one or more times
+                    child = current.children[-1]
                     temp = Tree({'repeat': range(1, self.max_repeats+1)})
-                    temp.children = [current.children.pop()]
-                    current.children.append(temp)
-                    temp.parent = current
+                    if child.children:
+                        temp.children = [child.children.pop()]
+                        child.children.append(temp)
+                        temp.parent = child
+                    else:
+                        temp.children = [child]
+                        temp.parent = current
+                        current.children.pop()
+                        current.children.append(temp)
                 elif match(r'<.+>', token): # Rule expansion
                     current.children.append(Tree({'rule' : token}))
                 else:                          # Terminal
@@ -187,3 +201,4 @@ if __name__ == "__main__":
     grammar = BNFGrammar(parser.rules)
     for i in range(1, args.n+1):
         print grammar.generate()
+    pprint(grammar.rules['<START>'])
