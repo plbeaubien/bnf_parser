@@ -201,4 +201,4 @@ if __name__ == "__main__":
     grammar = BNFGrammar(parser.rules)
     for i in range(1, args.n+1):
         print grammar.generate()
-    pprint(grammar.rules['<START>'])
+    #pprint(grammar.rules['<START>'])
