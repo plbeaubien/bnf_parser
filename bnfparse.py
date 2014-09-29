@@ -1,6 +1,8 @@
 __authors__ = ['Aaron Levine', 'Zachary Yocum']
 __emails__  = ['', 'zyocum@brandeis.edu']
 
+from re import match, sub
+
 class BNFGrammar(object):
     """A Backus-Naur form (BNF) grammar capable of generating sentences."""
     def __init__(self, rules):
@@ -41,27 +43,44 @@ class BNFParser(object):
     tree."""
     def __init__(self, text, max_repeats=3):
         super(BNFParser, self).__init__()
-        self.text = self.normalize(text)
+        self.text = self.normalize_text(text)
         self.max_repeats = max_repeats
-        self.rules = dict(
-            [split_on('=', rule) for rule in split_on(';', self.text)]
-        )
+        self.rules = self.compile_rules()
         self.parse()
     
-    def normalize(self, text):
-        """Normalizes raw BNF in preparation for parsing."""
-        from re import sub
+    def compile_rules(self):
+        rules = dict([split_on('=', rule) for rule in split_on(';', self.text)])
+        for rule in rules:
+            rules[rule] = self.normalize_rule(rules[rule])
+            print rule, ':', rules[rule]
+        return rules
+    
+    def normalize_text(self, text):
         sub_patterns = [
-            (r'//.+', ''),                 # remove comments
-            (r'\n', ' '),                  # transduce newlines to spaces
-            (r'\s+', ' '),                 # normalize whitespace
-            (r'\s([\)\]])', r'\1'),        # normalize whitespace before ) and ]
-            (r'([\(\[])\s', r'\1'),        # normalize whitespace after ( and [
-            (r'\s*([\|\+\*]+)\s*', r'\1') # normalize spaces around operators
+            (r'//.+', ''),                # remove comments
+            (r'\n', ''),                  # transduce newlines to spaces
+            (r'\s+', ' ')                 # normalize whitespace
         ]
         for pattern, substitution in sub_patterns:
             text = sub(pattern, substitution, text)
         return text
+    
+    def normalize_rule(self, rule):
+        sub_patterns = [
+            (r'\s*\|\s*', '|'), # normalize spaces around operators
+            (r'([^\(\)\[\]\|*+\s]+)', r'(\1)'),
+            (r'\(+\s\(+', '(('),
+            (r'\)+\s\)+', '))'),
+            (r'\(+\s\[+', '(('),
+            (r'\]+\s\)+', '))'),
+            (r'\[+\s\[+', '[['),
+            (r'\]+\s\]+', ']]'),
+            (r'\[+\s\(+', '[['),
+            (r'\)+\s\]+', ']]')
+        ]
+        for pattern, substitution in sub_patterns:
+            rule = sub(pattern, substitution, rule)
+        return rule
     
     def tokenize(self, rule):
         """Tokenizes normalized Backus-Naur Form (BNF) content."""
@@ -114,13 +133,14 @@ class BNFParser(object):
                     stack[-1].attrib = {'one-of' : None}
                     current = stack[-1]
                 elif token == ' ':             # Conjunction
-                    temp = Tree({'all-of' : None})
-                    temp.parent = current
-                    child = current.children.pop()
-                    current.children.append(temp)
-                    child.parent = temp
-                    temp.children.append(child)
-                    current = temp
+                    if current.children:
+                        child = current.children.pop()
+                        temp = Tree({'all-of' : None})
+                        temp.parent = current
+                        current.children.append(temp)
+                        child.parent = temp
+                        temp.children.append(child)
+                        current = temp
                 elif token == '*':             # Repeat zero or more times
                     child = current.children[-1]
                     temp = Tree({'repeat': range(0, self.max_repeats+1)})
@@ -193,8 +213,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.path, 'r') as fo:
-        parser = BNFParser(fo.read(), args.rep_max)
+        contents = fo.read()
+        parser = BNFParser(contents, args.rep_max)
     grammar = BNFGrammar(parser.rules)
+    pprint(grammar.rules['<START>'])
+    rule = '<custom>'
+    if grammar.rules.has_key(rule):
+        pprint(grammar.rules[rule])
     for i in range(1, args.n+1):
         print grammar.generate()
     #pprint(grammar.rules['<START>'])
