@@ -1,6 +1,7 @@
 __authors__ = ['Aaron Levine', 'Zachary Yocum']
 __emails__  = ['aclevine@brandeis.edu', 'zyocum@brandeis.edu']
 
+import random
 from re import match, sub
 
 class BNFGrammar(object):
@@ -16,7 +17,6 @@ class BNFGrammar(object):
     
     def traverse(self, tree):
         """Traverse the tree to generate a sentence licensed by the grammar."""
-        import random
         output = []
         if tree.attrib.has_key('terminal'): # Terminal
             output.append(tree.attrib['terminal'])
@@ -110,7 +110,6 @@ class BNFParser(object):
 
     def parse(self):
         """Convert BNF to an n-ary tree via a recursive-descent parse."""
-        from re import match
         # Instantiate a stack to keep track of each nested level
         stack = Stack()
         for lhs, rhs in self.rules.iteritems():
