@@ -109,7 +109,7 @@ class BNFParser(object):
         return token_list
 
     def parse(self):
-        """Convert bnf to an n-ary tree via a recursive-descent parse."""
+        """Convert BNF to an n-ary tree via a recursive-descent parse."""
         from re import match
         # Instantiate a stack to keep track of each nested level
         stack = Stack()
@@ -174,7 +174,7 @@ class BNFParser(object):
                         temp.parent = current
                         current.children.pop()
                         current.children.append(temp)
-                elif match(r'<.+>', token): # Rule expansion
+                elif match(r'<.+>', token):    # Rule expansion
                     current.children.append(Tree({'rule' : token}))
                 else:                          # Terminal
                     current.children.append(Tree({'terminal' : token}))
