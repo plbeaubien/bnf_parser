@@ -4,6 +4,10 @@ __emails__  = ['aclevine@brandeis.edu', 'zyocum@brandeis.edu']
 import random
 from re import match, sub
 
+"""A Backus-Naur form (BNF) parser implemented using a top-down, recursive 
+descent parser, and a BNF grammar implemented using an underlying n-ary tree
+to store a finite-state grammar (FSG)."""
+
 class BNFGrammar(object):
     """A Backus-Naur form (BNF) grammar capable of generating sentences."""
     def __init__(self, rules):
@@ -57,7 +61,6 @@ class BNFParser(object):
         rules = dict([split_on('=', rule) for rule in split_on(';', self.text)])
         for rule in rules:
             rules[rule] = self.normalize_rule(rules[rule])
-            #print rule, ':', rules[rule]
         return rules
     
     def normalize_text(self, text):
