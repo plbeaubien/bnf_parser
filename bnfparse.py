@@ -1,5 +1,5 @@
 __authors__ = ['Aaron Levine', 'Zachary Yocum']
-__emails__  = ['', 'zyocum@brandeis.edu']
+__emails__  = ['aclevine@brandeis.edu', 'zyocum@brandeis.edu']
 
 from re import match, sub
 
@@ -49,34 +49,43 @@ class BNFParser(object):
         self.parse()
     
     def compile_rules(self):
+        """Builds a rules dictionary of (left-hand-side, right-hand-side) 
+        key-value pairs.
+        
+        The left-hand-side keys are rule name strings and the right-hand-side 
+        values are rule expansion strings."""
         rules = dict([split_on('=', rule) for rule in split_on(';', self.text)])
         for rule in rules:
             rules[rule] = self.normalize_rule(rules[rule])
-            print rule, ':', rules[rule]
+            #print rule, ':', rules[rule]
         return rules
     
     def normalize_text(self, text):
+        """Normalizes raw BNF by removing comments and extraneous whitespace."""
         sub_patterns = [
-            (r'//.+', ''),                # remove comments
-            (r'\n', ''),                  # transduce newlines to spaces
-            (r'\s+', ' ')                 # normalize whitespace
+            (r'//.+', ''), # remove comments
+            (r'\n', ''),   # transduce newlines to spaces
+            (r'\s+', ' ')  # normalize whitespace
         ]
         for pattern, substitution in sub_patterns:
             text = sub(pattern, substitution, text)
         return text
     
     def normalize_rule(self, rule):
+        """Normalizes raw BNF rules (i.e., the right-hand side of a rule) in 
+        preparation for parsing by removing extraneous whitespace and wrapping 
+        terminals and rule expansions with parentheses."""
         sub_patterns = [
-            (r'\s*\|\s*', '|'), # normalize spaces around operators
-            (r'([^\(\)\[\]\|*+\s]+)', r'(\1)'),
-            (r'\(+\s\(+', '(('),
+            (r'\s*\|\s*', '|'),  # remove whitespace before and after |
+            (r'([^\(\)\[\]\|*+\s]+)', r'(\1)'), # wrap terminals/rules with ()
+            (r'\(+\s\(+', '(('), # remove extraneous whitespace
             (r'\)+\s\)+', '))'),
-            (r'\(+\s\[+', '(('),
-            (r'\]+\s\)+', '))'),
+            (r'\(+\s\[+', '(['),
+            (r'\]+\s\)+', '])'),
             (r'\[+\s\[+', '[['),
             (r'\]+\s\]+', ']]'),
-            (r'\[+\s\(+', '[['),
-            (r'\)+\s\]+', ']]')
+            (r'\[+\s\(+', '[('),
+            (r'\)+\s\]+', ')]')
         ]
         for pattern, substitution in sub_patterns:
             rule = sub(pattern, substitution, rule)
@@ -206,20 +215,32 @@ def split_on(delimiter, text):
 
 if __name__ == "__main__":
     from argparse import *
+    # Setup commandline argument parser
     parser = ArgumentParser()
-    parser.add_argument('--path', required=True, help='path to bnf grammar file')
-    parser.add_argument('--n', default=1, type=int, help='number of sentences to generate')
-    parser.add_argument('--rep-max', default=2, type=int, help="maximum number of '*' and '+' expansions")
+    parser.add_argument(
+        '--path',
+        required=True,
+        help='path to bnf grammar file'
+    )
+    parser.add_argument(
+        '--n',
+        default=1,
+        type=int,
+        help='number of sentences to generate'
+    )
+    parser.add_argument(
+        '--rep-max',
+        default=2,
+        type=int,
+        help="maximum number of '*' and '+' expansions"
+    )
     args = parser.parse_args()
-
+    # Read the specified file's contents
     with open(args.path, 'r') as fo:
         contents = fo.read()
         parser = BNFParser(contents, args.rep_max)
+    # Instantiate a grammar
     grammar = BNFGrammar(parser.rules)
-    pprint(grammar.rules['<START>'])
-    rule = '<custom>'
-    if grammar.rules.has_key(rule):
-        pprint(grammar.rules[rule])
-    for i in range(1, args.n+1):
+    # Print n sentences
+    for i in range(args.n):
         print grammar.generate()
-    #pprint(grammar.rules['<START>'])
