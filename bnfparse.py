@@ -64,7 +64,7 @@ class BNFParser(object):
         """Normalizes raw BNF by removing comments and extraneous whitespace."""
         sub_patterns = [
             (r'//.+', ''), # remove comments
-            (r'\n', ''),   # transduce newlines to spaces
+            (r'\n', ''),   # removes newlines
             (r'\s+', ' ')  # normalize whitespace
         ]
         for pattern, substitution in sub_patterns:
