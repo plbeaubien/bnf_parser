@@ -1,3 +1,9 @@
-<START> = [0] a [<dummy> <dummy> | c]* d;
+<START> = [<zero>] <a> [<b> <b> | <c>]* <d>;
 
-<dummy> = f 
+<a> = a;
+
+<b> = b;
+
+<c> = c;
+
+<d> = d; 
