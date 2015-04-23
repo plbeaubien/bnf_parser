@@ -15,25 +15,25 @@ class BNFGrammar(object):
         self.rules = rules
         self.root = self.rules['<START>']
     
-    def generate(self):
+    def generate(self, delimiter=' '):
         """Returns a sentence licensed by the grammar as a string."""
-        return ' '.join(filter(None, self.traverse(self.root)))
+        return delimiter.join(filter(None, self.traverse(self.root)))
     
     def traverse(self, tree):
         """Traverse the tree to generate a sentence licensed by the grammar."""
         output = []
-        if tree.attrib.has_key('terminal'): # Terminal
-            output.append(tree.attrib['terminal'])
-        if tree.attrib.has_key('rule'):     # Rule
-            output.extend(self.traverse(self.rules[tree.attrib['rule']]))
-        if tree.attrib.has_key('one-of'):   # Disjunction
+        if tree.attributes.has_key('terminal'): # Terminal
+            output.append(tree.attributes['terminal'])
+        if tree.attributes.has_key('rule'):     # Rule
+            output.extend(self.traverse(self.rules[tree.attributes['rule']]))
+        if tree.attributes.has_key('one-of'):   # Disjunction
             child = random.choice(tree.children)
             output.extend(self.traverse(child))
-        if tree.attrib.has_key('all-of'):   # Conjunction
+        if tree.attributes.has_key('all-of'):   # Conjunction
             for child in tree.children:
                 output.extend(self.traverse(child))
-        if tree.attrib.has_key('repeat'):   # Repetition
-            n = random.choice(tree.attrib['repeat'])
+        if tree.attributes.has_key('repeat'):   # Repetition
+            n = random.choice(tree.attributes['repeat'])
             for i in range(n):
                 for child in tree.children:
                     output.extend(self.traverse(child))
@@ -53,11 +53,13 @@ class BNFParser(object):
         self.parse()
     
     def compile_rules(self):
-        """Builds a rules dictionary of (left-hand-side, right-hand-side) 
-        key-value pairs.
+        """Builds a rules dictionary of (A, B) key-value pairs.
         
-        The left-hand-side keys are rule name strings and the right-hand-side 
-        values are rule expansion strings."""
+        The left-hand-side keys (A) are rule name strings and the 
+        right-hand-side rules values (B) are rule expansion strings.
+        
+        The rules conform to BNF with A -> B, where B is an expansion including 
+        any string including terminals, non-terminals, and operators."""
         rules = dict([split_on('=', rule) for rule in split_on(';', self.text)])
         for rule in rules:
             rules[rule] = self.normalize_rule(rules[rule])
@@ -80,15 +82,13 @@ class BNFParser(object):
         terminals and rule expansions with parentheses."""
         sub_patterns = [
             (r'\s*\|\s*', '|'),  # remove whitespace before and after |
-            (r'([^\(\)\[\]\|*+\s]+)', r'(\1)'), # wrap terminals/rules with ()
-            (r'\(+\s\(+', '(('), # remove extraneous whitespace
-            (r'\)+\s\)+', '))'),
-            (r'\(+\s\[+', '(['),
-            (r'\]+\s\)+', '])'),
-            (r'\[+\s\[+', '[['),
-            (r'\]+\s\]+', ']]'),
-            (r'\[+\s\(+', '[('),
-            (r'\)+\s\]+', ')]')
+            (r'([^()\[\]|*+\s]+)', r'(\1)'), # wrap terminals/rules with ()
+            (r'([\])]+)\s+([\])]+)', r'\1\2'), # remove extraneous whitespace
+            (r'([\[(]+)\s+([\[(]+)', r'\1\2'),
+            (r'\]', r'])'),
+            (r'\[', r'(['),
+            (r'>', r'>)'),
+            (r'<', r'(<'),
         ]
         for pattern, substitution in sub_patterns:
             rule = sub(pattern, substitution, rule)
@@ -122,26 +122,26 @@ class BNFParser(object):
             current = root
             # Iterate over all tokens in the right-hand side
             for token in self.tokenize('(' + rhs + ')'):
-                if token =='(':                # We need to go deeper
+                if token == '(':                # We need to go deeper
                     temp = Tree({'all-of' : None})
                     current.children.append(temp)
                     temp.parent = current
                     stack.push(temp)
                     current = temp
-                elif token ==')':              # Kick back up a level
+                elif token == ')':              # Kick back up a level
                     stack.pop()
                     current = stack[-1]
-                elif token =='[':              # Repeat once or not at all
+                elif token == '[':              # Repeat once or not at all
                     temp = Tree({'repeat': [0, 1]})
                     current.children.append(temp)
                     temp.parent = current
                     stack.push(temp)
                     current = temp
-                elif token ==']':              # Kick back up a level
+                elif token == ']':              # Kick back up a level
                     stack.pop()
                     current = stack[-1]
                 elif token == '|':             # Disjunction
-                    stack[-1].attrib = {'one-of' : None}
+                    stack[-1].attributes = {'one-of' : None}
                     current = stack[-1]
                 elif token == ' ':             # Conjunction
                     if current.children:
@@ -184,7 +184,7 @@ class BNFParser(object):
         return root
 
 class Stack(list):
-    """A simple stack using an underlying list."""
+    """A simple stack using Python's built-in list."""
     def __init__(self):
         super(Stack, self).__init__()
     
@@ -198,15 +198,15 @@ class Stack(list):
 
 class Tree(object):
     """An n-ary tree capable of storing a finite-state grammar (FSG)."""
-    def __init__(self, attrib={}):
+    def __init__(self, attributes={}):
         super(Tree, self).__init__()
-        self.attrib = attrib
+        self.attributes = attributes
         self.parent = None
         self.children = []
 
 def pprint(tree, i=0):
     """A method for displaying n-ary trees in human-readable form."""
-    print '\t' * i + str(tree.attrib)
+    print '\t' * i + str(tree.attributes)
     for child in tree.children:
         pprint(child, i+1)
 
@@ -220,29 +220,32 @@ if __name__ == "__main__":
     # Setup commandline argument parser
     parser = ArgumentParser()
     parser.add_argument(
-        '--path',
+        '-g',
+        '--grammar',
         required=True,
-        help='path to bnf grammar file'
+        help='path to BNF grammar file'
     )
     parser.add_argument(
-        '--n',
+        '-n',
+        '--number',
         default=1,
         type=int,
         help='number of sentences to generate'
     )
     parser.add_argument(
-        '--rep-max',
+        '-r',
+        '--repeat-max',
         default=2,
         type=int,
         help="maximum number of '*' and '+' expansions"
     )
     args = parser.parse_args()
     # Read the specified file's contents
-    with open(args.path, 'r') as fo:
-        contents = fo.read()
-        parser = BNFParser(contents, args.rep_max)
-    # Instantiate a grammar
+    with open(args.grammar, 'r') as file:
+        contents = file.read()
+    # Instantiate parser and grammar
+    parser = BNFParser(contents, args.repeat_max)
     grammar = BNFGrammar(parser.rules)
-    # Print n sentences
-    for i in range(args.n):
+    # Generate and print sentences
+    for i in range(args.number):
         print grammar.generate()
