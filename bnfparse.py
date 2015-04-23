@@ -4,9 +4,8 @@ __emails__  = ['aclevine@brandeis.edu', 'zyocum@brandeis.edu']
 import random
 from re import match, sub
 
-"""A Backus-Naur form (BNF) parser implemented using a top-down, recursive 
-descent parser, and a BNF grammar implemented using an underlying n-ary tree
-to store a finite-state grammar (FSG)."""
+"""An implementation of a top-down, recursive descent, Backus-Naur form (BNF) 
+parser and a finite-state, BNF grammar supporting n-ary branching structures."""
 
 class BNFGrammar(object):
     """A Backus-Naur form (BNF) grammar capable of generating sentences."""
@@ -40,7 +39,7 @@ class BNFGrammar(object):
         return output
 
 class BNFParser(object):
-    """A Backus-Naur form (BNF) recursive descent parser.
+    """A top-down, recursive descent, Backus-Naur form (BNF) parser.
     
     Given a string containing a BNF grammar, a BNFParser instance parses
     the string to construct a finite-state grammar (FSG) stored in an n-ary 
@@ -53,13 +52,14 @@ class BNFParser(object):
         self.parse()
     
     def compile_rules(self):
-        """Builds a rules dictionary of (A, B) key-value pairs.
+        """Builds a rules dictionary of A -> B key-value pairs.
         
         The left-hand-side keys (A) are rule name strings and the 
         right-hand-side rules values (B) are rule expansion strings.
         
-        The rules conform to BNF with A -> B, where B is an expansion including 
-        any string including terminals, non-terminals, and operators."""
+        The rules conform to BNF such that A is a non-terminal that expands to 
+        an expansion B that is composed of terminals, non-terminals, and 
+        operators."""
         rules = dict([split_on('=', rule) for rule in split_on(';', self.text)])
         for rule in rules:
             rules[rule] = self.normalize_rule(rules[rule])
@@ -85,7 +85,7 @@ class BNFParser(object):
             (r'([^()\[\]|*+\s]+)', r'(\1)'), # wrap terminals/rules with ()
             (r'([\])]+)\s+([\])]+)', r'\1\2'), # remove extraneous whitespace
             (r'([\[(]+)\s+([\[(]+)', r'\1\2'),
-            (r'\]', r'])'),
+            (r'\]', r'])'), # ensure wrapping of non-terminals and optionals
             (r'\[', r'(['),
             (r'>', r'>)'),
             (r'<', r'(<'),
@@ -184,7 +184,7 @@ class BNFParser(object):
         return root
 
 class Stack(list):
-    """A simple stack using Python's built-in list."""
+    """A simple stack wrapping the built-in list."""
     def __init__(self):
         super(Stack, self).__init__()
     
