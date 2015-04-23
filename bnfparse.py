@@ -1,18 +1,22 @@
+"""An implementation of a top-down, recursive descent, Backus-Naur form (BNF) 
+parser and a finite-state, BNF grammar supporting n-ary branching structures."""
+
 __authors__ = ['Aaron Levine', 'Zachary Yocum']
 __emails__  = ['aclevine@brandeis.edu', 'zyocum@brandeis.edu']
 
 import random
+from argparse import ArgumentParser
 from re import match, sub
+from string import strip
 
-"""An implementation of a top-down, recursive descent, Backus-Naur form (BNF) 
-parser and a finite-state, BNF grammar supporting n-ary branching structures."""
+START = '<START>'
 
 class BNFGrammar(object):
     """A Backus-Naur form (BNF) grammar capable of generating sentences."""
     def __init__(self, rules):
         super(BNFGrammar, self).__init__()
         self.rules = rules
-        self.root = self.rules['<START>']
+        self.root = self.rules[START]
     
     def generate(self, delimiter=' '):
         """Returns a sentence licensed by the grammar as a string."""
@@ -44,10 +48,10 @@ class BNFParser(object):
     Given a string containing a BNF grammar, a BNFParser instance parses
     the string to construct a finite-state grammar (FSG) stored in an n-ary 
     tree."""
-    def __init__(self, text, max_repeats=3):
+    def __init__(self, text, repeat_max=3):
         super(BNFParser, self).__init__()
         self.text = self.normalize_text(text)
-        self.max_repeats = max_repeats
+        self.repeat_max = repeat_max
         self.rules = self.compile_rules()
         self.parse()
     
@@ -80,7 +84,7 @@ class BNFParser(object):
         """Normalizes raw BNF rules (i.e., the right-hand side of a rule) in 
         preparation for parsing by removing extraneous whitespace and wrapping 
         terminals and rule expansions with parentheses."""
-        sub_patterns = [
+        substitutions = [
             (r'\s*\|\s*', '|'),  # remove whitespace before and after |
             (r'([^()\[\]|*+\s]+)', r'(\1)'), # wrap terminals/rules with ()
             (r'([\])]+)\s+([\])]+)', r'\1\2'), # remove extraneous whitespace
@@ -90,7 +94,7 @@ class BNFParser(object):
             (r'>', r'>)'),
             (r'<', r'(<'),
         ]
-        for pattern, substitution in sub_patterns:
+        for pattern, substitution in substitutions:
             rule = sub(pattern, substitution, rule)
         return rule
     
@@ -154,7 +158,7 @@ class BNFParser(object):
                         current = temp
                 elif token == '*':             # Repeat zero or more times
                     child = current.children[-1]
-                    temp = Tree({'repeat': range(0, self.max_repeats+1)})
+                    temp = Tree({'repeat': range(0, self.repeat_max+1)})
                     if child.children:
                         temp.children = [child.children.pop()]
                         child.children.append(temp)
@@ -166,7 +170,7 @@ class BNFParser(object):
                         current.children.append(temp)
                 elif token == '+':             # Repeat one or more times
                     child = current.children[-1]
-                    temp = Tree({'repeat': range(1, self.max_repeats+1)})
+                    temp = Tree({'repeat': range(1, self.repeat_max+1)})
                     if child.children:
                         temp.children = [child.children.pop()]
                         child.children.append(temp)
@@ -212,11 +216,9 @@ def pprint(tree, i=0):
 
 def split_on(delimiter, text):
     """Split text based on a delimiter."""
-    from string import strip
     return filter(None, map(strip, text.split(delimiter)))
 
 if __name__ == "__main__":
-    from argparse import *
     # Setup commandline argument parser
     parser = ArgumentParser()
     parser.add_argument(
